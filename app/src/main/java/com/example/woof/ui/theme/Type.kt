@@ -23,18 +23,20 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.example.woof.R
 
-val AbrilFatface = FontFamily(
-    Font(R.font.abril_fatface_regular)
+val AbrilFatFace = FontFamily(
+    Font(R.font.abrilfatface_regular)
 )
 
 val Montserrat = FontFamily(
     Font(R.font.montserrat_regular),
-    Font(R.font.montserrat_bold, FontWeight.Bold)
+    // Compose는 이 파일이 굵은 버전이라는 사실을 알지 못하므로 명시적으로 Bold체임을 선언해주어야 한다
+    Font(R.font.montserrat_bold, FontWeight.Bold),
 )
 
+// Set of Material typography styles to start with
 val Typography = Typography(
     displayLarge = TextStyle(
-        fontFamily = AbrilFatface,
+        fontFamily = AbrilFatFace,
         fontWeight = FontWeight.Normal,
         fontSize = 36.sp
     ),
@@ -43,6 +45,7 @@ val Typography = Typography(
         fontWeight = FontWeight.Bold,
         fontSize = 20.sp
     ),
+
     labelSmall = TextStyle(
         fontFamily = Montserrat,
         fontWeight = FontWeight.Bold,

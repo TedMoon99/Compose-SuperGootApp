@@ -21,14 +21,15 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -39,11 +40,11 @@ import androidx.compose.material.icons.filled.ExpandLess
 import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Card
 import androidx.compose.material3.CenterAlignedTopAppBar
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -68,27 +69,24 @@ class MainActivity : ComponentActivity() {
         setContent {
             WoofTheme {
                 // A surface container using the 'background' color from the theme
-                Surface(
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    WoofApp()
-                }
+                WoofApp()
             }
         }
     }
 }
-
+// check comment
 /**
  * Composable that displays an app bar and a list of dogs.
  */
 @Composable
 fun WoofApp() {
     Scaffold(
-        topBar = {
-            WoofTopAppBar()
-        }
+        topBar = { WoofTopAppBar() }
     ) { it ->
-        LazyColumn(contentPadding = it) {
+        // it : contentWindowInsets: Scaffold 콘텐츠의 Insets을 지정하는데 도움이 된다
+        LazyColumn(
+            contentPadding = it,
+        ) {
             items(dogs) {
                 DogItem(
                     dog = it,
@@ -97,6 +95,32 @@ fun WoofApp() {
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun WoofTopAppBar(modifier: Modifier = Modifier) {
+    CenterAlignedTopAppBar(
+        title = {
+            Row(
+                verticalAlignment = Alignment.CenterVertically // Row 내용물 세로축 가운데 정렬
+            ) {
+                Image(
+                    modifier = Modifier
+                        .size(dimensionResource(R.dimen.image_size))
+                        .padding(dimensionResource(R.dimen.padding_small)),
+                    painter = painterResource(R.drawable.ic_woof_logo),
+                    contentDescription = null
+                )
+
+                Text(
+                    text = stringResource(R.string.app_name),
+                    style = MaterialTheme.typography.displayLarge,
+                )
+            }
+        },
+        modifier = modifier
+    )
 }
 
 /**
@@ -110,39 +134,56 @@ fun DogItem(
     dog: Dog,
     modifier: Modifier = Modifier
 ) {
+
     var expanded by remember { mutableStateOf(false) }
-    Card(
-        modifier = modifier
-    ) {
+    // 색상을 선언하고 animateColorAsState() 함수에게 초기화를 위임한다
+    val color by animateColorAsState(
+        targetValue = if (expanded) MaterialTheme.colorScheme.tertiaryContainer // 펼쳐졌을 때의 색상
+        else MaterialTheme.colorScheme.primaryContainer, // 펼쳐지지 않았을 때의 색상
+
+
+        )
+
+    Card(modifier = modifier) {
         Column(
+            // Animation 적용
             modifier = Modifier
                 .animateContentSize(
-                    animationSpec = spring(
-                        dampingRatio = Spring.DampingRatioNoBouncy,
-                        stiffness = Spring.StiffnessMedium
-                    )
-                )
+                // animationSpec을 사용하여 기기별로 맞춤 설정할 수 있다
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioNoBouncy, // dampingRatio: 감쇠비. 물체의 운동을 저지시키려는 단위 속도당 힘
+                    stiffness = Spring.StiffnessMediumLow, // stiffness: 강성. 변형에 저항하는 성질
+                ))
+                .background(color= color)
         ) {
             Row(
-                modifier = Modifier
+                modifier = modifier
                     .fillMaxWidth()
                     .padding(dimensionResource(R.dimen.padding_small))
             ) {
                 DogIcon(dog.imageResourceId)
                 DogInformation(dog.name, dog.age)
-                Spacer(Modifier.weight(1f))
+                // Spacer가 Row에서 유일하게 가중치가 적용됨
+                // 가중치가 없는 다른 요소의 너비를 측정한 후에 남은 공간을 채워준다
+                Spacer(modifier = Modifier.weight(1f))
                 DogItemButton(
                     expanded = expanded,
-                    onClick = { expanded = !expanded },
+                    onClick = {
+                        /* 클릭 시 위의 expanded 값을 바꿔준다 */
+                        expanded = !expanded
+                    },
                 )
             }
+
+            // DogHobby
             if (expanded) {
                 DogHobby(
-                    dog.hobbies, modifier = Modifier.padding(
+                    dog.hobbies,
+                    modifier = Modifier.padding(
                         start = dimensionResource(R.dimen.padding_medium),
                         top = dimensionResource(R.dimen.padding_small),
-                        bottom = dimensionResource(R.dimen.padding_medium),
-                        end = dimensionResource(R.dimen.padding_medium)
+                        end = dimensionResource(R.dimen.padding_medium),
+                        bottom = dimensionResource(R.dimen.padding_medium)
                     )
                 )
             }
@@ -150,64 +191,44 @@ fun DogItem(
     }
 }
 
-/**
- * Composable that displays a button that is clickable and displays an expand more or an expand less
- * icon.
- *
- * @param expanded represents whether the expand more or expand less icon is visible
- * @param onClick is the action that happens when the button is clicked
- * @param modifier modifiers to set to this composable
- */
 @Composable
-private fun DogItemButton(
+fun DogItemButton(
     expanded: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     IconButton(
         onClick = onClick,
-        modifier = modifier
+        modifier = modifier,
     ) {
         Icon(
             imageVector = if (expanded) Icons.Filled.ExpandLess else Icons.Filled.ExpandMore,
             contentDescription = stringResource(R.string.expand_button_content_description),
-            tint = MaterialTheme.colorScheme.secondary
+            tint = MaterialTheme.colorScheme.secondary, // 보조색 적용
         )
     }
 }
 
-/**
- * Composable that displays a Top Bar with an icon and text.
- *
- * @param modifier modifiers to set to this composable
- */
 @Composable
-fun WoofTopAppBar(modifier: Modifier = Modifier) {
-    CenterAlignedTopAppBar(
-        title = {
-            Row(
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Image(
-                    modifier = Modifier
-                        .size(dimensionResource(R.dimen.image_size))
-                        .padding(dimensionResource(R.dimen.padding_small)),
-                    painter = painterResource(R.drawable.ic_woof_logo),
-
-                    // Content Description is not needed here - image is decorative, and setting a
-                    // null content description allows accessibility services to skip this element
-                    // during navigation.
-
-                    contentDescription = null
-                )
-                Text(
-                    text = stringResource(R.string.app_name),
-                    style = MaterialTheme.typography.displayLarge
-                )
-            }
-        },
+fun DogHobby(
+    @StringRes dogHobby: Int,
+    modifier: Modifier = Modifier
+) {
+    Column(
         modifier = modifier
-    )
+    ) {
+        Text(
+            text = stringResource(R.string.about),
+            style = MaterialTheme.typography.labelSmall
+        )
+
+        Text(
+            text = stringResource(dogHobby),
+            style = MaterialTheme.typography.bodyLarge
+        )
+
+    }
+
 }
 
 /**
@@ -226,8 +247,8 @@ fun DogIcon(
             .size(dimensionResource(R.dimen.image_size))
             .padding(dimensionResource(R.dimen.padding_small))
             .clip(MaterialTheme.shapes.small),
-        contentScale = ContentScale.Crop,
         painter = painterResource(dogIcon),
+        contentScale = ContentScale.Crop,
 
         // Content Description is not needed here - image is decorative, and setting a null content
         // description allows accessibility services to skip this element during navigation.
@@ -257,32 +278,6 @@ fun DogInformation(
         )
         Text(
             text = stringResource(R.string.years_old, dogAge),
-            style = MaterialTheme.typography.bodyLarge
-        )
-    }
-}
-
-/**
- * Composable that displays a dog's hobbies.
- *
- * @param dogHobby is the resource ID for the text string of the hobby to display
- * @param modifier modifiers to set to this composable
- */
-@Composable
-fun DogHobby(
-    @StringRes dogHobby: Int,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier
-    ) {
-        Text(
-            text = stringResource(R.string.about),
-            style = MaterialTheme.typography.labelSmall
-        )
-        Text(
-            text = stringResource(dogHobby),
-            style = MaterialTheme.typography.bodyLarge
         )
     }
 }
@@ -298,9 +293,6 @@ fun WoofPreview() {
     }
 }
 
-/**
- * Composable that displays what the UI of the app looks like in dark theme in the design tab.
- */
 @Preview
 @Composable
 fun WoofDarkThemePreview() {
