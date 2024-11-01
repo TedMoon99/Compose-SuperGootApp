@@ -74,7 +74,7 @@ class MainActivity : ComponentActivity() {
         }
     }
 }
-
+// check comment
 /**
  * Composable that displays an app bar and a list of dogs.
  */
